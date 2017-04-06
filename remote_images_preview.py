@@ -49,7 +49,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
     def update_url_highlights(self, view):
 
         settings = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME)
-        should_highlight_remote_image_urls = settings.get('highlight_remote_image_urls', True)
+        should_highlight_images = settings.get('highlight_images', True)
         max_url_limit = settings.get('max_url_limit', RemoteImagesPreview.DEFAULT_MAX_URLS)
 
         if view.id() in RemoteImagesPreview.ignored_views:
@@ -69,9 +69,9 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
             'data_uris': data_uris,
         }
 
-        should_highlight_remote_image_urls = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME).get('highlight_remote_image_urls', True)
-        if (should_highlight_remote_image_urls):
-            self.highlight_remote_image_urls(view, urls)
+        should_highlight_images = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME).get('highlight_images', True)
+        if (should_highlight_images):
+            self.highlight_images(view, urls + data_uris)
 
     """Same as update_url_highlights, but avoids race conditions with a
     semaphore."""
@@ -84,7 +84,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
 
     """Creates a set of regions from the intersection of urls and scopes,
     underlines all of them."""
-    def highlight_remote_image_urls(self, view, urls):
+    def highlight_images(self, view, urls):
         # We need separate regions for each lexical scope for ST to use a proper color for the underline
         scope_map = {}
         for url in urls:
