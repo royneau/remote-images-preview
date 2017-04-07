@@ -12,6 +12,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
     # ^ that up here is a URL that should be matched
     URL_REGEX = "\\bhttps?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]\.(?:jpg|gif|png)"
     DATA_URI_REGEX = "\\bdata:image/[\w\/\+]+;(charset=[\w-]+|base64).*,(.*)\\b"
+    RELATIVE_PATH_REGEX = "[-A-Za-z0-9+&@#/%?~_|!:,.;]*[-A-Za-z0-9+&@#/%=~_(|]\.(?:jpg|gif|png)"
 
     DEFAULT_MAX_URLS = 200
     SETTINGS_FILENAME = 'RemoteImagesPreview.sublime-settings'
@@ -57,6 +58,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
 
         urls = view.find_all(RemoteImagesPreview.URL_REGEX)
         data_uris = view.find_all(RemoteImagesPreview.DATA_URI_REGEX)
+        relative_paths = view.find_all(RemoteImagesPreview.RELATIVE_PATH_REGEX)
 
         # Avoid slowdowns for views with too much URLs
         if len(urls) + len(data_uris) > max_url_limit:
@@ -71,7 +73,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
 
         should_highlight_images = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME).get('highlight_images', True)
         if (should_highlight_images):
-            self.highlight_images(view, urls + data_uris)
+            self.highlight_images(view, urls + data_uris + relative_paths)
 
     """Same as update_url_highlights, but avoids race conditions with a
     semaphore."""
