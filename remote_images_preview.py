@@ -11,11 +11,12 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
     # Thanks Jeff Atwood http://www.codinghorror.com/blog/2008/10/the-problem-with-urls.html
     # ^ that up here is a URL that should be matched
     URL_REGEX = "\\bhttps?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]\.(?:jpg|gif|png)"
+    DATA_URI_REGEX = "\\bdata:image/[\w\/\+]+;(charset=[\w-]+|base64).*,(.*)\\b"
 
     DEFAULT_MAX_URLS = 200
     SETTINGS_FILENAME = 'RemoteImagesPreview.sublime-settings'
 
-    urls_for_view = {}
+    images_for_view = {}
     scopes_for_view = {}
     ignored_views = []
     highlight_semaphore = threading.Semaphore()
@@ -40,32 +41,37 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
         self.update_url_highlights_async(view)
 
     def on_close(self, view):
-        for map in [self.urls_for_view, self.scopes_for_view, self.ignored_views]:
+        for map in [self.images_for_view, self.scopes_for_view, self.ignored_views]:
             if view.id() in map:
                 del map[view.id()]
 
     """The logic entry point. Find all URLs in view, store and highlight them"""
     def update_url_highlights(self, view):
+
         settings = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME)
-        should_highlight_remote_image_urls = settings.get('highlight_remote_image_urls', True)
+        should_highlight_images = settings.get('highlight_images', True)
         max_url_limit = settings.get('max_url_limit', RemoteImagesPreview.DEFAULT_MAX_URLS)
 
         if view.id() in RemoteImagesPreview.ignored_views:
             return
 
         urls = view.find_all(RemoteImagesPreview.URL_REGEX)
+        data_uris = view.find_all(RemoteImagesPreview.DATA_URI_REGEX)
 
         # Avoid slowdowns for views with too much URLs
-        if len(urls) > max_url_limit:
+        if len(urls) + len(data_uris) > max_url_limit:
             print("RemoteImagesPreview: ignoring view with %u URLs" % len(urls))
             RemoteImagesPreview.ignored_views.append(view.id())
             return
 
-        RemoteImagesPreview.urls_for_view[view.id()] = urls
+        RemoteImagesPreview.images_for_view[view.id()] = {
+            'urls': urls,
+            'data_uris': data_uris,
+        }
 
-        should_highlight_remote_image_urls = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME).get('highlight_remote_image_urls', True)
-        if (should_highlight_remote_image_urls):
-            self.highlight_remote_image_urls(view, urls)
+        should_highlight_images = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME).get('highlight_images', True)
+        if (should_highlight_images):
+            self.highlight_images(view, urls + data_uris)
 
     """Same as update_url_highlights, but avoids race conditions with a
     semaphore."""
@@ -78,7 +84,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
 
     """Creates a set of regions from the intersection of urls and scopes,
     underlines all of them."""
-    def highlight_remote_image_urls(self, view, urls):
+    def highlight_images(self, view, urls):
         # We need separate regions for each lexical scope for ST to use a proper color for the underline
         scope_map = {}
         for url in urls:
@@ -123,16 +129,25 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
 
     def on_hover(self, view, point, hover_zone):
         if (hover_zone == sublime.HOVER_TEXT):
-            if view.id() in RemoteImagesPreview.urls_for_view:
-                hover = next((url for url in RemoteImagesPreview.urls_for_view[view.id()] if url.contains(point)), None)
-                if not hover:
+            if view.id() in RemoteImagesPreview.images_for_view:
+                hover = next((url for url in RemoteImagesPreview.images_for_view[view.id()]['urls'] if url.contains(point)), None)
+                if hover:
+                    url = view.substr(hover)
+                    image = urllib.request.urlopen(url).read()
+                    encoded = str(base64.b64encode(image), "utf-8")
+                    view.show_popup(
+                        '<img src="data:image/png;base64,' + encoded + '">',
+                        flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                        location=point, max_width=1000, max_height=1000
+                    )
                     return
-                url = view.substr(hover)
-                image = urllib.request.urlopen(url).read()
-                encoded = str(base64.b64encode(image), "utf-8")
-                view.show_popup(
-                    '<img src="data:image/png;base64,' + encoded + '">',
-                    flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-                    location=point, max_width=1000, max_height=1000
-                )
+
+                hover = next((data_uri for data_uri in RemoteImagesPreview.images_for_view[view.id()]['data_uris'] if data_uri.contains(point)), None)
+                if hover:
+                    data_uri = view.substr(hover)
+                    view.show_popup(
+                        '<img src="' + data_uri + '">',
+                        flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                        location=point, max_width=1000, max_height=1000
+                    )
         return

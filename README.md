@@ -37,10 +37,10 @@ All configuration is done via the settings file that you can open via the main m
 
 ### Disabling URL highlighting
 
-Unfortunately, the only way to underline a block of text in Sublime Text 2 is a hack with underlining empty regions, and there is no way to control its appearance. If you want, you can disable URL highlighting by setting the option `highlight_remote_image_urls` to false.
+Unfortunately, the only way to underline a block of text in Sublime Text 2 is a hack with underlining empty regions, and there is no way to control its appearance. If you want, you can disable URL highlighting by setting the option `highlight_images` to false.
 
     {
-        "highlight_remote_image_urls": false
+        "highlight_images": false
     }
 
 Note that this isn't an issue with Sublime Text 3.
