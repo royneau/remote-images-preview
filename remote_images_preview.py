@@ -2,6 +2,7 @@
 import sublime_plugin
 import threading
 import base64
+import os
 import re
 import urllib.request
 
@@ -69,6 +70,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
         RemoteImagesPreview.images_for_view[view.id()] = {
             'urls': urls,
             'data_uris': data_uris,
+            'relative_paths': relative_paths,
         }
 
         should_highlight_images = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME).get('highlight_images', True)
@@ -152,4 +154,28 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
                         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
                         location=point, max_width=1000, max_height=1000
                     )
+                    return
+
+                hover = next((data_uri for data_uri in RemoteImagesPreview.images_for_view[view.id()]['relative_paths'] if data_uri.contains(point)), None)
+                if hover:
+
+                    relative_path = view.substr(hover)
+
+                    current_file = view.file_name()
+                    current_path = os.path.dirname(current_file)
+
+                    file_name = current_path + '/' + relative_path
+
+                    # Check that file exists
+                    if (file_name and os.path.isfile(file_name)):
+                        encoded = str(base64.b64encode(
+                            open(file_name, "rb").read()
+                        ), "utf-8")
+
+                        view.show_popup(
+                            '<img src="data:image/png;base64,' + encoded + '">',
+                            flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                            location=point, max_width=1000, max_height=1000
+                        )
+
         return
