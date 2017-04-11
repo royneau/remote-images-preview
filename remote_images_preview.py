@@ -2,6 +2,7 @@
 import sublime_plugin
 import threading
 import base64
+import os
 import re
 import urllib.request
 
@@ -12,6 +13,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
     # ^ that up here is a URL that should be matched
     URL_REGEX = "\\bhttps?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]\.(?:jpg|gif|png)"
     DATA_URI_REGEX = "\\bdata:image/[\w\/\+]+;(charset=[\w-]+|base64).*,(.*)\\b"
+    RELATIVE_PATH_REGEX = "[-A-Za-z0-9+&@#/%?~_|!:,.;]*[-A-Za-z0-9+&@#/%=~_(|]\.(?:jpg|gif|png)"
 
     DEFAULT_MAX_URLS = 200
     SETTINGS_FILENAME = 'RemoteImagesPreview.sublime-settings'
@@ -57,6 +59,7 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
 
         urls = view.find_all(RemoteImagesPreview.URL_REGEX)
         data_uris = view.find_all(RemoteImagesPreview.DATA_URI_REGEX)
+        relative_paths = view.find_all(RemoteImagesPreview.RELATIVE_PATH_REGEX)
 
         # Avoid slowdowns for views with too much URLs
         if len(urls) + len(data_uris) > max_url_limit:
@@ -67,11 +70,12 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
         RemoteImagesPreview.images_for_view[view.id()] = {
             'urls': urls,
             'data_uris': data_uris,
+            'relative_paths': relative_paths,
         }
 
         should_highlight_images = sublime.load_settings(RemoteImagesPreview.SETTINGS_FILENAME).get('highlight_images', True)
         if (should_highlight_images):
-            self.highlight_images(view, urls + data_uris)
+            self.highlight_images(view, urls + data_uris + relative_paths)
 
     """Same as update_url_highlights, but avoids race conditions with a
     semaphore."""
@@ -150,4 +154,28 @@ class RemoteImagesPreview(sublime_plugin.EventListener):
                         flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
                         location=point, max_width=1000, max_height=1000
                     )
+                    return
+
+                hover = next((data_uri for data_uri in RemoteImagesPreview.images_for_view[view.id()]['relative_paths'] if data_uri.contains(point)), None)
+                if hover:
+
+                    relative_path = view.substr(hover)
+
+                    current_file = view.file_name()
+                    current_path = os.path.dirname(current_file)
+
+                    file_name = current_path + '/' + relative_path
+
+                    # Check that file exists
+                    if (file_name and os.path.isfile(file_name)):
+                        encoded = str(base64.b64encode(
+                            open(file_name, "rb").read()
+                        ), "utf-8")
+
+                        view.show_popup(
+                            '<img src="data:image/png;base64,' + encoded + '">',
+                            flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                            location=point, max_width=1000, max_height=1000
+                        )
+
         return
