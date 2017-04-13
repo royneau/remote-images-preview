@@ -1,4 +1,4 @@
-﻿import sublime
+import sublime
 import sublime_plugin
 import threading
 import base64
