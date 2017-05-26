@@ -11,6 +11,12 @@ This plugin underlines remote image URLs in Sublime Text, and lets you preview t
 
 ## Installation
 
+### With Package Control
+
+In the Command Palette, use the `Package Control: Add Repository` option and enter this URL: https://github.com/royneau/remote-images-preview.
+
+### With Git
+
 _macOS_
 ```
 cd ~/Library/Application\ Support/Sublime\ Text\ 3/Packages
@@ -29,7 +35,9 @@ cd "%APPDATA%\Sublime Text 3\Packages"
 git clone --depth=1 https://github.com/royneau/remote-images-preview.git
 ```
 
-Or manually create a folder named "remote-images-preview" on your Sublime Text's Packages folder and copy the content of this repo to it.
+### Manually
+
+Create a folder named "remote-images-preview" on your Sublime Text's Packages folder and download the content of this repo to it.
 
 ## Configuration
 
