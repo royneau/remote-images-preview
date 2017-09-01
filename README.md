@@ -7,13 +7,14 @@ A plugin for [Sublime Text 2 and 3](http://sublimetext.com)
 
 This plugin underlines remote image URLs in Sublime Text, and lets you preview the images simply by hovering on their URLs.
 
-**Performance warning.** The plugin is automatically disabled if the document has more than 200 remote image URLs, in order to avoid a massive performance hit. To change this number, set the `max_url_limit` option (see "Configuration" below). 
+**Performance warning.** The plugin is automatically disabled if the document has more than 200 remote image URLs, in order to avoid a massive performance hit. To change this number, set the `max_url_limit` option (see "Configuration" below).
 
 ## Installation
 
 ### With Package Control
 
-In the Command Palette, use the `Package Control: Add Repository` option and enter this URL: https://github.com/royneau/remote-images-preview.
+In the Command Palette, use the `Package Control: Add Repository` option and enter this URL: https://github.com/royneau/remote-images-preview.  
+Then, use the `Package Control: Install Package` option and choose `remote-images-preview`.
 
 ### With Git
 
